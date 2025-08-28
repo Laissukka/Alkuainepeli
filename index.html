@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alkuainepeli — kirjoita nimi tai merkki (FI)</title>
+  <style>
+    :root{
+      --bg: #0f172a;         /* slate-900 */
+      --panel: #111827;      /* gray-900 */
+      --panel-2: #0b1220;    /* darker */
+      --text: #e5e7eb;       /* gray-200 */
+      --muted: #94a3b8;      /* slate-400 */
+      --brand: #60a5fa;      /* blue-400 */
+      --ok: #34d399;         /* emerald-400 */
+      --bad: #fb7185;        /* rose-400 */
+      --border: #1f2937;     /* gray-800 */
+      --chip: #1e293b;       /* slate-800 */
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,Noto Sans,sans-serif;background:linear-gradient(180deg,#0b1220,#0f172a);color:var(--text)}
+    .container{max-width:980px;margin:0 auto;padding:24px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+    h1{font-size:clamp(20px,3vw,28px);font-weight:650;margin:0}
+    .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .card .body{padding:18px}
+    .grid{display:grid;gap:12px}
+    @media(min-width:860px){.grid.cols-3{grid-template-columns:1fr 1fr 1fr}}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    select, input[type="text"], button{height:44px;border-radius:12px;border:1px solid var(--border);background:#0b1220;color:var(--text);padding:0 12px;font-size:16px}
+    select{width:100%}
+    button{background:#0b1220;cursor:pointer}
+    button.primary{background:linear-gradient(180deg,#1e40af,#1d4ed8);border-color:#1d4ed8}
+    button.secondary{background:#0b1220}
+    button.ghost{background:transparent;border-color:transparent}
+    .row{display:flex;gap:10px;align-items:center}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .stat{background:var(--chip);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center}
+    .stat .h{font-size:12px;color:var(--muted)}
+    .stat .v{font-size:22px;font-weight:700}
+    .prompt{display:flex;align-items:center;justify-content:center;margin:6px 0 12px}
+    .prompt .big{font-size:64px;font-weight:800;letter-spacing:-.02em}
+    .prompt .name{font-size:42px;font-weight:700;letter-spacing:-.01em}
+    .answer-area{display:flex;gap:8px}
+    .reveal{border:1px solid var(--border);border-radius:14px;padding:14px}
+    .reveal.ok{background:rgba(52,211,153,.08)}
+    .reveal.bad{background:rgba(251,113,133,.08)}
+    .muted{color:var(--muted)}
+    .spacer{height:6px}
+    .progress{height:8px;background:#0b1220;border:1px solid var(--border);border-radius:999px;overflow:hidden}
+    .bar{height:100%;background:linear-gradient(90deg,#22c55e,#60a5fa)}
+    .hint{font-size:12px;color:var(--muted)}
+    .footer{color:var(--muted);font-size:12px;margin-top:8px}
+    .switch{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--border);border-radius:12px;padding:10px}
+    .switch input{width:42px;height:24px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{background:var(--chip);border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Alkuainepeli — kirjoita nimi tai merkki</h1>
+      <div class="hint" id="cardCount">Kortteja: 0</div>
+    </header>
+
+    <section class="card">
+      <div class="body grid cols-3">
+        <div>
+          <label>Kysymystyyppi</label>
+          <select id="mode">
+            <option value="MIXED">Sekoita kysymystyyppi</option>
+            <option value="ASK_NAME">Näytä merkki → kirjoita nimi</option>
+            <option value="ASK_SYMBOL">Näytä nimi → kirjoita merkki</option>
+          </select>
+        </div>
+        <div>
+          <label>Korttipakan koko</label>
+          <select id="setSize">
+            <option value="10">Top 10 (Z 1–10)</option>
+            <option value="20">Top 20 (Z 1–20)</option>
+            <option value="36">Top 36 (Z 1–36)</option>
+            <option value="54">Top 54 (Z 1–54)</option>
+            <option value="86">Top 86 (Z 1–86)</option>
+            <option value="118" selected>Kaikki 118 (Z 1–118)</option>
+          </select>
+        </div>
+        <div class="switch">
+          <div>
+            <div style="font-size:14px;font-weight:600">Vaikea tila</div>
+            <div class="hint">Vaadi vastaukseksi <em>toinen puoli</em> (ei sama kuin näkyvä).</div>
+          </div>
+          <input type="checkbox" id="hard" />
+        </div>
+      </div>
+    </section>
+
+    <div class="spacer"></div>
+
+    <section>
+      <div class="row" style="gap:12px;align-items:center">
+        <div class="progress" style="flex:1"><div id="progressBar" class="bar" style="width:0%"></div></div>
+        <div class="hint" id="progressPct" style="width:56px;text-align:right">0%</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="stats">
+        <div class="stat"><div class="h">Oikein</div><div id="okCount" class="v">0</div></div>
+        <div class="stat"><div class="h">Tarkkuus</div><div id="acc" class="v">100%</div></div>
+        <div class="stat"><div class="h">Putki</div><div id="streak" class="v">0</div></div>
+      </div>
+    </section>
+
+    <div class="spacer"></div>
+
+    <section id="cardSec" class="card">
+      <div class="body">
+        <div class="row" style="justify-content:space-between;margin-bottom:4px">
+          <div class="hint" id="zInfo">Z = –</div>
+          <div class="hint" id="askInfo">—</div>
+        </div>
+        <div id="prompt" class="prompt"><div class="big">–</div></div>
+        <div id="answerWrap" class="answer-area">
+          <input id="answer" type="text" placeholder="Kirjoita vastaus…" autocomplete="off" />
+          <button id="submit" class="primary">Vastaa</button>
+          <button id="reveal" class="secondary">Näytä</button>
+        </div>
+        <div id="revealBox" class="reveal" style="display:none"></div>
+      </div>
+    </section>
+
+    <div class="spacer"></div>
+
+    <section class="row" style="justify-content:space-between">
+      <button id="restart" class="secondary">Aloita alusta</button>
+      <button id="shuffle" class="ghost">Sekoita pakka</button>
+    </section>
+
+    <p class="footer">Vinkit: Enter = vastaa / seuraava. Vastaukseksi hyväksytään oletuksena sekä nimi että merkki; kytke “Vaikea tila” jos haluat, että on vastattava <em>vastakkainen puoli</em> (esim. näkyy merkki → pitää kirjoittaa nimi).</p>
+
+    <details class="footer">
+      <summary>Näytä hyväksytyt nimisynonyymit</summary>
+      <div id="syno" class="chips" style="margin-top:8px"></div>
+    </details>
+  </div>
+
+  <script>
+    // --- Apurit ---
+    const $ = (s)=>document.querySelector(s);
+    const $$ = (s)=>Array.from(document.querySelectorAll(s));
+    function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+    function norm(s){return (s||"").toString().trim().toLowerCase().normalize('NFD').replace(/[\p{Diacritic}]/gu,'')}
+
+    // --- Data: 118 alkuaineen nimimuodot (FI + synonyymit) ---
+    // name = ensisijainen FI; aliases = hyväksytyt lisänimet (FI/EN kirjoitusvariantit)
+    const ELEMENTS = [
+      [1,'H','Vety', ['hydrogen','vety']],
+      [2,'He','Helium', ['helium']],
+      [3,'Li','Litium', ['liitium','lithium','litium']],
+      [4,'Be','Beryllium', ['berylium','beryllium']],
+      [5,'B','Boori', ['boron','boori']],
+      [6,'C','Hiili', ['carbon','hiili']],
+      [7,'N','Typpi', ['nitrogen','typpi']],
+      [8,'O','Happi', ['oxygen','happi']],
+      [9,'F','Fluori', ['fluor','fluorine','fluori']],
+      [10,'Ne','Neon', ['neon']],
+      [11,'Na','Natrium', ['natrium','sodium']],
+      [12,'Mg','Magnesium', ['magnesium']],
+      [13,'Al','Alumiini', ['alumiini','aluminum','aluminium']],
+      [14,'Si','Pii', ['silicon','pii']],
+      [15,'P','Fosfori', ['phosphorus','fosfori']],
+      [16,'S','Rikki', ['sulfur','sulphur','rikki']],
+      [17,'Cl','Kloori', ['chlorine','kloori']],
+      [18,'Ar','Argon', ['argon']],
+      [19,'K','Kalium', ['kalium','potassium']],
+      [20,'Ca','Kalsium', ['kalsium','calcium']],
+      [21,'Sc','Skandium', ['scandium','skandium']],
+      [22,'Ti','Titaani', ['titanium','titaani']],
+      [23,'V','Vanadiini', ['vanadium','vanadiini']],
+      [24,'Cr','Kromi', ['chromium','kromi']],
+      [25,'Mn','Mangaani', ['mangaani','manganese']],
+      [26,'Fe','Rauta', ['iron','rauta']],
+      [27,'Co','Koboltti', ['cobalt','koboltti']],
+      [28,'Ni','Nikkeli', ['nickel','nikkeli']],
+      [29,'Cu','Kupari', ['copper','kupari']],
+      [30,'Zn','Sinkki', ['zinc','sinkki']],
+      [31,'Ga','Gallium', ['gallium']],
+      [32,'Ge','Germanium', ['germanium']],
+      [33,'As','Arseeni', ['arsenic','arseeni']],
+      [34,'Se','Seleeni', ['selenium','seleeni']],
+      [35,'Br','Bromi', ['bromine','bromi']],
+      [36,'Kr','Krypton', ['krypton']],
+      [37,'Rb','Rubidium', ['rubidium']],
+      [38,'Sr','Strontium', ['strontium']],
+      [39,'Y','Yttrium', ['yttrium','yttrium']],
+      [40,'Zr','Zirkonium', ['zirconium','zirkonium','zirkoni']],
+      [41,'Nb','Niobium', ['niobium']],
+      [42,'Mo','Molybdeeni', ['molybdenum','molybdeeni']],
+      [43,'Tc','Teknetium', ['technetium','teknetium']],
+      [44,'Ru','Ruteeni', ['ruthenium','ruteeni']],
+      [45,'Rh','Rodium', ['rhodium','rodium']],
+      [46,'Pd','Palladium', ['palladium']],
+      [47,'Ag','Hopea', ['silver','hopea']],
+      [48,'Cd','Kadmium', ['cadmium','kadmium']],
+      [49,'In','Indium', ['indium']],
+      [50,'Sn','Tina', ['tin','tina']],
+      [51,'Sb','Antimoni', ['antimony','antimoni']],
+      [52,'Te','Telluuri', ['tellurium','telluuri']],
+      [53,'I','Jodi', ['iodine','jodi','iodi']],
+      [54,'Xe','Ksenon', ['xenon','ksenon']],
+      [55,'Cs','Cesium', ['cesium','seesium','caesium']],
+      [56,'Ba','Barium', ['barium']],
+      [57,'La','Lantaani', ['lanthanum','lantaani']],
+      [58,'Ce','Cerium', ['cerium']],
+      [59,'Pr','Praseodyymi', ['praseodymium','praseodyymi']],
+      [60,'Nd','Neodyymi', ['neodymium','neodyymi']],
+      [61,'Pm','Prometium', ['promethium','prometium']],
+      [62,'Sm','Samarium', ['samarium']],
+      [63,'Eu','Europium', ['europium']],
+      [64,'Gd','Gadolinium', ['gadolinium']],
+      [65,'Tb','Terbium', ['terbium']],
+      [66,'Dy','Dysprosium', ['dysprosium']],
+      [67,'Ho','Holmium', ['holmium']],
+      [68,'Er','Erbium', ['erbium']],
+      [69,'Tm','Tulium', ['thulium','tulium','tuliumi']],
+      [70,'Yb','Ytterbium', ['ytterbium']],
+      [71,'Lu','Lutetium', ['lutetium','lutetium']],
+      [72,'Hf','Hafnium', ['hafnium']],
+      [73,'Ta','Tantaali', ['tantalum','tantaali']],
+      [74,'W','Volframi', ['tungsten','volframi','wolframi']],
+      [75,'Re','Renium', ['rhenium','renium']],
+      [76,'Os','Osmium', ['osmium']],
+      [77,'Ir','Iridium', ['iridium']],
+      [78,'Pt','Platina', ['platinum','platina']],
+      [79,'Au','Kulta', ['gold','kulta']],
+      [80,'Hg','Elohopea', ['mercury','elohopea']],
+      [81,'Tl','Tallium', ['thallium','tallium']],
+      [82,'Pb','Lyijy', ['lead','lyijy']],
+      [83,'Bi','Vismutti', ['bismuth','vismutti']],
+      [84,'Po','Polonium', ['polonium']],
+      [85,'At','Astaatti', ['astatine','astaatti']],
+      [86,'Rn','Radon', ['radon']],
+      [87,'Fr','Frankium', ['francium','frankium']],
+      [88,'Ra','Radium', ['radium']],
+      [89,'Ac','Aktinium', ['actinium','aktinium']],
+      [90,'Th','Torium', ['thorium','torium']],
+      [91,'Pa','Protaktinium', ['protactinium','protaktinium']],
+      [92,'U','Uraani', ['uranium','uraani']],
+      [93,'Np','Neptunium', ['neptunium']],
+      [94,'Pu','Plutonium', ['plutonium']],
+      [95,'Am','Americium', ['americium','amerikium']],
+      [96,'Cm','Curium', ['curium']],
+      [97,'Bk','Berkelium', ['berkelium','berkeleyum','berkelium']],
+      [98,'Cf','Kalifornium', ['californium','kalifornium']],
+      [99,'Es','Einsteinium', ['einsteinium']],
+      [100,'Fm','Fermium', ['fermium']],
+      [101,'Md','Mendelevium', ['mendelevium','mendeleevium']],
+      [102,'No','Nobelium', ['nobelium']],
+      [103,'Lr','Lawrencium', ['lawrencium','laurensium']],
+      [104,'Rf','Rutherfordium', ['rutherfordium']],
+      [105,'Db','Dubnium', ['dubnium']],
+      [106,'Sg','Seaborgium', ['seaborgium']],
+      [107,'Bh','Bohrium', ['bohrium','borium']],
+      [108,'Hs','Hassium', ['hassium']],
+      [109,'Mt','Meitnerium', ['meitnerium']],
+      [110,'Ds','Darmstadtium', ['darmstadtium']],
+      [111,'Rg','Röntgenium', ['roentgenium','röntgenium','rontgenium']],
+      [112,'Cn','Kopernikium', ['copernicium','kopernikium']],
+      [113,'Nh','Nihonium', ['nihonium']],
+      [114,'Fl','Flerovium', ['flerovium']],
+      [115,'Mc','Moskovium', ['moscovium','moskovium']],
+      [116,'Lv','Livermorium', ['livermorium']],
+      [117,'Ts','Tennessiini', ['tennessine','tennessiini','tennesiini']],
+      [118,'Og','Oganesson', ['oganesson']]
+    ].map(([Z,sym,name,aliases])=>({Z,symbol:sym,name,aliases}));
+
+    // --- Peli ---
+    const els = {
+      mode: $('#mode'), setSize: $('#setSize'), hard: $('#hard'),
+      cardCount: $('#cardCount'), zInfo: $('#zInfo'), askInfo: $('#askInfo'),
+      prompt: $('#prompt'), answer: $('#answer'), submit: $('#submit'), reveal: $('#reveal'),
+      revealBox: $('#revealBox'), progressBar: $('#progressBar'), progressPct: $('#progressPct'),
+      okCount: $('#okCount'), acc: $('#acc'), streak: $('#streak'),
+      restart: $('#restart'), shuffle: $('#shuffle'), syno: $('#syno')
+    };
+
+    // Persist settings
+    els.mode.value = localStorage.getItem('mode') || 'MIXED';
+    els.setSize.value = localStorage.getItem('setSize') || '118';
+    els.hard.checked = localStorage.getItem('hardOpposite') === 'true';
+
+    els.mode.addEventListener('change',()=>localStorage.setItem('mode',els.mode.value)||rebuild());
+    els.setSize.addEventListener('change',()=>localStorage.setItem('setSize',els.setSize.value)||rebuild());
+    els.hard.addEventListener('change',()=>localStorage.setItem('hardOpposite',els.hard.checked)||null);
+
+    let deck=[], idx=0, showing='prompt', result=null, answerText='';
+    let correct=0, attempts=0, streak=0;
+
+    function buildBase(){
+      const n = parseInt(els.setSize.value,10);
+      return ELEMENTS.slice(0,n);
+    }
+
+    function buildDeck(){
+      const base = buildBase();
+      const mode = els.mode.value;
+      const cards = base.map(e=>({
+        ...e,
+        ask: mode==='MIXED' ? (Math.random()<.5?'ASK_NAME':'ASK_SYMBOL'): mode
+      }));
+      return shuffle(cards);
+    }
+
+    function rebuild(){
+      deck = buildDeck(); idx=0; showing='prompt'; result=null; answerText='';
+      correct=0; attempts=0; streak=0;
+      render();
+    }
+
+    function setPrompt(card){
+      els.zInfo.textContent = `Z = ${card.Z}`;
+      els.askInfo.textContent = card.ask==='ASK_NAME' ? 'Näytetään merkki → kirjoita nimi' : 'Näytetään nimi → kirjoita merkki';
+      const html = card.ask==='ASK_NAME'
+        ? `<div class="big">${card.symbol}</div>`
+        : `<div class="name">${card.name}</div>`;
+      els.prompt.innerHTML = html;
+      els.answer.value = '';
+      els.answer.placeholder = card.ask==='ASK_NAME' ? 'Kirjoita alkuaineen nimi…' : 'Kirjoita kemiallinen merkki…';
+      els.answer.focus();
+      els.revealBox.style.display='none';
+      els.answerWrap?.classList?.remove('hidden');
+    }
+
+    function updateStats(){
+      const prog = deck.length? Math.round((idx/deck.length)*100) : 0;
+      els.progressBar.style.width = prog+'%';
+      els.progressPct.textContent = prog+'%';
+      els.okCount.textContent = String(correct);
+      const acc = attempts? Math.round((correct/attempts)*100) : 100;
+      els.acc.textContent = acc+'%';
+      els.streak.textContent = String(streak);
+      els.cardCount.textContent = 'Kortteja: '+deck.length;
+    }
+
+    function acceptableNames(card){
+      const base = [card.name, ...(card.aliases||[])];
+      // unique by normalized
+      const seen = new Set();
+      return base.filter(n=>{const k=norm(n); if(seen.has(k)) return false; seen.add(k); return true;});
+    }
+
+    function check(){
+      const card = deck[idx];
+      if(!card) return;
+      const typed = norm(els.answer.value);
+      const want = card.ask==='ASK_NAME' ? 'name' : 'symbol';
+      const opposite = card.ask==='ASK_NAME' ? 'symbol' : 'name';
+
+      const okOpposite = want==='name'
+        ? acceptableNames(card).some(n=>norm(n)===typed)
+        : (typed === norm(card.symbol));
+      const okEither = okOpposite || (opposite==='name'
+        ? acceptableNames(card).some(n=>norm(n)===typed)
+        : (typed === norm(card.symbol)));
+
+      const passed = els.hard.checked ? okOpposite : okEither;
+      attempts++;
+      if(passed){correct++; streak++; result=true;} else {streak=0; result=false;}
+      showing='reveal';
+      renderReveal(card, typed, passed);
+      updateStats();
+    }
+
+    function next(){
+      if(idx+1 < deck.length){ idx++; showing='prompt'; result=null; setPrompt(deck[idx]); updateStats(); }
+      else { rebuild(); }
+    }
+
+    function renderReveal(card, typed, passed){
+      els.revealBox.style.display='block';
+      els.revealBox.className = 'reveal '+(passed?'ok':'bad');
+      const syn = acceptableNames(card).slice(0,5).join(', ');
+      els.revealBox.innerHTML = `
+        <div style="font-size:18px;font-weight:700;margin-bottom:6px">${passed? 'Oikein!':'Väärin.'}</div>
+        <div class="muted" style="margin-bottom:6px">Oikea pari: <b>${card.name}</b> — <b style="font-family:ui-monospace,Menlo,Consolas,monospace">${card.symbol}</b></div>
+        ${typed? `<div class="hint">Vastauksesi: “${(typed||'').replace(/</g,'&lt;')}”</div>`:''}
+        <div class="row" style="margin-top:10px;gap:8px">
+          <button class="primary" id="nextBtn">Seuraava</button>
+        </div>
+      `;
+      $('#nextBtn').addEventListener('click', next);
+    }
+
+    function renderSynonyms(){
+      els.syno.innerHTML = '';
+      const n = parseInt(els.setSize.value,10);
+      const list = ELEMENTS.slice(0,n).flatMap(e=>acceptableNames(e).map(nm=>({s:e.symbol,n:nm})));
+      for(const item of list){
+        const div = document.createElement('div');
+        div.className='chip';
+        div.textContent = `${item.n} (${item.s})`;
+        els.syno.appendChild(div);
+      }
+    }
+
+    function render(){
+      updateStats();
+      if(!deck.length){ deck = buildDeck(); }
+      setPrompt(deck[idx]);
+      renderSynonyms();
+    }
+
+    // Handlers
+    els.submit.addEventListener('click', check);
+    els.reveal.addEventListener('click', ()=>{showing='reveal'; attempts++; streak=0; result=false; renderReveal(deck[idx], '', false); updateStats();});
+    els.restart.addEventListener('click', rebuild);
+    els.shuffle.addEventListener('click', ()=>{deck = shuffle(deck); idx=0; showing='prompt'; result=null; setPrompt(deck[idx]); updateStats();});
+    els.answer.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter' && showing==='prompt') { e.preventDefault(); check(); }
+      else if(e.key==='Enter' && showing==='reveal') { e.preventDefault(); next(); }
+    });
+
+    // Init
+    rebuild();
+  </script>
+</body>
+</html>
